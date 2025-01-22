@@ -1,0 +1,9 @@
+# Node.js
+node_modules/
+# Environment files
+.env
+
+# VSCode settings
+.vscode/
+# npm package-lock
+package-lock.json

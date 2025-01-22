@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    Client 1
+
+    <button onclick="sendPostRequest()">Send post msg</button>
+    <button onclick="sendGetRequest()">Send get msg</button>
+  </body>
+
+  <script>
+    let myClientID = localStorage.getItem("clientID"); // Get the clientID from localStorage, if exists
+    let messageToServer;
+    let shortURL;
+    const socketUrl = myClientID
+      ? `ws://localhost:5000?clientID=${myClientID}`
+      : "ws://localhost:5000";
+    const socket = new WebSocket(socketUrl);
+
+    socket.addEventListener("open", function (e) {
+      console.log("Connected to ws server");
+    });
+
+    socket.addEventListener("message", function (e) {
+      const message = JSON.parse(e.data);
+
+      if (message.clientID) {
+        myClientID = message.clientID;
+        messageToServer = JSON.stringify({
+          type: "idAcknowledge",
+          content: `I received my clientID: ${myClientID}`,
+        });
+        console.log("i received my ID");
+        localStorage.setItem("clientID", myClientID);
+      } else {
+        messageToServer = JSON.stringify({
+          type: "shortUrlAcknowledge",
+          content: `Hey, I received the shortURL: ${message.shortenedURL}`,
+        });
+        console.log("i received a shorURL");
+        shortURL = message.shortenedURL;
+        // shortURL = "ha213has";
+      }
+      sendMessage(messageToServer);
+    });
+
+    const sendMessage = (msg) => {
+      socket.send(msg);
+    };
+    const sendGetRequest = async () => {
+      try {
+        const res = await fetch(shortURL);
+        const data = await res.json();
+        console.log(data);
+      } catch (e) {
+        console.log(`something went wrong ${e}`);
+      }
+    };
+
+    const sendPostRequest = async () => {
+      if (!myClientID) {
+        console.error("Client ID not yet assigned. Please refresh.");
+        return;
+      }
+
+      const payload = {
+        clientID: myClientID,
+        url: "http://example.com", // Replace with the URL you want to shorten
+      };
+
+      const res = await fetch("http://localhost:5000/url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      console.log(data);
+    };
+  </script>
+</html>
